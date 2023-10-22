@@ -10,7 +10,8 @@ app.use(express.json())
 
 const {
     MongoClient,
-    ServerApiVersion
+    ServerApiVersion,
+    ObjectId
 } = require('mongodb');
 const uri = "mongodb+srv://sharifrony725:ErqVzE3QuJoYEGfn@cluster0.9nwpjka.mongodb.net/?retryWrites=true&w=majority";
 
@@ -28,14 +29,51 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
 
-        const database = client.db("usersDB");
-        const userCollection = database.collection("users")
-
+        const userCollection = client.db("usersDB").collection("users")
+        // read
+        app.get('/users', async(req, res)=>{
+            const cursor = userCollection.find();
+            const result = await cursor.toArray();
+            res.send(result)
+        })
+        //create
         app.post('/users', async(req, res) =>{
             const user = req.body
             console.log(user);
             const result = await userCollection.insertOne(user);
             res.send(result)
+        })
+        //update 
+        app.get('/users/:id', async(req, res)=>{
+            const id = req.params.id;
+            const query = {_id : new ObjectId(id)}
+            const user = await userCollection.findOne(query)
+            res.send(user)
+        })
+
+        app.put('/users/:id', async(req, res)=>{
+            const id = req.params.id;
+            const user = req.body;
+            console.log(id, user);
+            const filter = {_id: new ObjectId(id)}
+            const options = {upsert: true}
+            const updateUser = {
+                $set: {
+                    name: user.name,
+                    email: user.email
+                }
+            }
+            const result = await userCollection.updateOne(filter, updateUser, options)
+            res.send(result)
+        })
+
+        //delete
+        app.delete('/users/:id', async(req, res)=>{
+            const id = req.params.id;
+            console.log('please delete ',id);
+            const query = {_id : new ObjectId(id)}
+            const result = await userCollection.deleteOne(query);
+            res.send(result);
         })
 
         // Send a ping to confirm a successful connection
@@ -53,7 +91,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('Simple Crud is ok Running')
+    res.send('Simple Crud Running')
 })
 
 app.listen(port, ()=>{
